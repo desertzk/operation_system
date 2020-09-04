@@ -35,6 +35,11 @@
 void readsect(void*, uint32_t);
 void readseg(uint32_t, uint32_t, uint32_t);
 
+/*
+You should now be able to understand the minimal ELF loader in boot/main.c. 
+It reads each section of the kernel from disk into memory at the section's load address and then jumps to the kernel's entry point.
+*/
+
 void
 bootmain(void)
 {

@@ -9,7 +9,7 @@ struct Elf {
 	uint16_t e_type;
 	uint16_t e_machine;
 	uint32_t e_version;
-	uint32_t e_entry;
+	uint32_t e_entry; //This field holds the link address of the entry point in the program: the memory address in the program's text section at which the program should begin executing.
 	uint32_t e_phoff;
 	uint32_t e_shoff;
 	uint32_t e_flags;
@@ -25,7 +25,7 @@ struct Proghdr {
 	uint32_t p_type;
 	uint32_t p_offset;
 	uint32_t p_va;
-	uint32_t p_pa;       //physical address
+	uint32_t p_pa;       //physical address the ph->p_pa field of each program header contains the segment's destination physical address (in this case, it really is a physical address, though the ELF specification is vague on the actual meaning of this field)
 	uint32_t p_filesz;
 	uint32_t p_memsz;    //memory size
 	uint32_t p_flags;
