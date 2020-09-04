@@ -25,9 +25,9 @@ struct Proghdr {
 	uint32_t p_type;
 	uint32_t p_offset;
 	uint32_t p_va;
-	uint32_t p_pa;
+	uint32_t p_pa;       //physical address
 	uint32_t p_filesz;
-	uint32_t p_memsz;
+	uint32_t p_memsz;    //memory size
 	uint32_t p_flags;
 	uint32_t p_align;
 };

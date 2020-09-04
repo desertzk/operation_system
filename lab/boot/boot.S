@@ -27,7 +27,8 @@ start:
   #   1MB wrap around to zero by default.  This code undoes this.
 seta20.1:
   inb     $0x64,%al               # Wait for not busy
-  testb   $0x2,%al
+  testb   $0x2,%al                #In the x86 assembly language, the TEST instruction performs a bitwise AND on two operands. The flags SF, ZF, PF are modified while the result of the AND is discarded. 
+  #The OF and CF flags are set to 0, while AF flag is undefined. There are 9 different opcodes for the TEST instruction depending on the type and size of the operands. It can compare 8-bit, 16-bit, 32-bit or 64-bit values. It can also compare registers, immediate values and register indirect values.
   jnz     seta20.1                #Jump if Not Zero
 
   movb    $0xd1,%al               # 0xd1 -> port 0x64

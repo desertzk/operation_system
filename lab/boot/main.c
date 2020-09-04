@@ -75,7 +75,7 @@ readseg(uint32_t pa, uint32_t count, uint32_t offset)
 
 	end_pa = pa + count;
 
-	// round down to sector boundary
+	// round down to sector boundary 将后面9位 与 0
 	pa &= ~(SECTSIZE - 1);
 
 	// translate from bytes to sectors, and kernel starts at sector 1
@@ -108,7 +108,7 @@ readsect(void *dst, uint32_t offset)
 {
 	// wait for disk to be ready
 	waitdisk();
-
+	//Sends a 8/16/32-bit value on a I/O location. Traditional names are outb, outw and outl respectively.
 	outb(0x1F2, 1);		// count = 1
 	outb(0x1F3, offset);
 	outb(0x1F4, offset >> 8);

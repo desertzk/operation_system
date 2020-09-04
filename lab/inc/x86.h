@@ -8,7 +8,7 @@ breakpoint(void)
 {
 	asm volatile("int3");
 }
-
+//Receives a 8/16/32-bit value from an I/O location. Traditional names are inb, inw and inl respectively.
 static inline uint8_t
 inb(int port)
 {
@@ -33,7 +33,7 @@ inw(int port)
 	asm volatile("inw %w1,%0" : "=a" (data) : "d" (port));
 	return data;
 }
-
+//The cld instruction clears the direction flag: DF = 0
 static inline void
 insw(int port, void *addr, int cnt)
 {
