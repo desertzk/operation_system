@@ -58,6 +58,7 @@ entry:
 	movl	%eax, %cr3
 	# Turn on paging.
 	movl	%cr0, %eax
+	# PE Protected Mode Enable PG Paging WP Write protect
 	orl	$(CR0_PE|CR0_PG|CR0_WP), %eax
 	movl	%eax, %cr0
 

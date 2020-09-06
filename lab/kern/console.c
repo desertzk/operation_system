@@ -192,6 +192,18 @@ cga_putc(int c)
 	}
 
 	// What is the purpose of this?
+	/*参数：
+crt_pos:当前输出位置指针，指向内存区中对应输出映射地址。
+CRT_SIZE:是CRT_COLS和CRT_ROWS的乘积，即2000=80*25，是不翻页时一页屏幕最大能容纳的字数
+crt_buf:输出缓冲区内存映射地址
+CRT_COLS:默认输出格式下整个屏幕的列数，为80
+CRT_ROWS:默认输出格式下整个屏幕的行数，为25
+unit16_t:typedef unsigned short 正好两字节，可以分别用来表示当前要打印的字符ASCII码和打印格式属性。
+函数：
+memmove(): memmove(void *dst, const void *src, size_t n).意为将从src指向位置起的n字节数据送到dst指向位置，可以在两个区域重叠时复制。
+若当前输出位置大于屏幕最大输出范围，则将缓冲区整体前移一行（整体前移80字，覆盖之前的内容），之后将最后一行置为全0x0，最后将当前输出位置上移一行（也是80字），从这一页之后移到这一页内。
+还是很抽象是吧，其实就是完成了向下滚动一行的操作。。。
+*/
 	if (crt_pos >= CRT_SIZE) {
 		int i;
 

@@ -2,7 +2,7 @@
 #define JOS_KERN_KDEBUG_H
 
 #include <inc/types.h>
-
+//EIP is Instruction pointer
 // Debug information about a particular instruction pointer
 struct Eipdebuginfo {
 	const char *eip_file;		// Source code filename for EIP
