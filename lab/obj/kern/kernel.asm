@@ -76,7 +76,9 @@ void
 test_backtrace(int x)
 {
 f0100040:	55                   	push   %ebp
-f0100041:	89 e5                	mov    %esp,%ebp
+f0100041:	89 e5                	mov    %esp,%ebp   
+# push   %ebp  mov    %esp,%ebp  是C语言进入函数的惯例 保存上一层函数栈指针ebp 然后再把这一层的 esp 赋值给 ebp (在函数运行期间将当前esp值复制到ebp中。)
+# On entry to a C function, the function's prologue code normally saves the previous function's base pointer by pushing it onto the stack, and then copies the current esp value into ebp for the duration of the function.
 f0100043:	56                   	push   %esi
 f0100044:	53                   	push   %ebx
 f0100045:	e8 72 01 00 00       	call   f01001bc <__x86.get_pc_thunk.bx>
