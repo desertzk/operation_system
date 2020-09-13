@@ -93,7 +93,8 @@ stab_binsearch(const struct Stab *stabs, int *region_left, int *region_right,
 	}
 }
 
-
+//.stab有程序的调试信息包括文件多少行对应哪个函数 偏移多少
+//stab & .stabstr	debugging symbols & similar information.
 // debuginfo_eip(addr, info)
 //
 //	Fill in the 'info' structure with information about the specified
@@ -179,7 +180,13 @@ debuginfo_eip(uintptr_t addr, struct Eipdebuginfo *info)
 	//	Look at the STABS documentation and <inc/stab.h> to find
 	//	which one.
 	// Your code here.
-
+	stab_binsearch(stabs, &lline, &rline, N_SLINE, addr);
+    if(lline <= rline){
+        info->eip_line = stabs[rline].n_desc;
+    }
+    else {
+        info->eip_line = -1;
+	}
 
 	// Search backwards from the line number for the relevant filename
 	// stab.
