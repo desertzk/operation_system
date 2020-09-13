@@ -19,14 +19,14 @@ f010000b:	e4                   	.byte 0xe4
 f010000c <entry>:
 f010000c:	66 c7 05 72 04 00 00 	movw   $0x1234,0x472
 f0100013:	34 12 
-	# sufficient until we set up our real page table in mem_init
 	# in lab 2.
 
 	# Load the physical address of entry_pgdir into cr3.  entry_pgdir
-	# is defined in entrypgdir.c.
-	movl	$(RELOC(entry_pgdir)), %eax
+	# is defined in entrypgdir.c. 这个机制的实现方式是通过写了一个c语言的页表，entry_pgdir，
+	# 这个手写的页表可以自动的把[0xf0000000-0xf0400000]这4MB的虚拟地址空间映射为[0x00000000-0x00400000]的物理地址空间。可见这个页表的映射能力还是比较有限的，只能映射一个区域
+	movl	$(RELOC(entry_pgdir)), %eax # 第1句，它的功能是把entry_pgdir这个页表的起始物理地址送给%eax，这里RELOC宏的功能是计算输入参数的物理地址
 f0100015:	b8 00 20 11 00       	mov    $0x112000,%eax
-	movl	%eax, %cr3
+	movl	%eax, %cr3 # 第2句，把entry_pgdir这个页表的起始地址传送给寄存器%cr3。
 f010001a:	0f 22 d8             	mov    %eax,%cr3
 	# Turn on paging.
 	movl	%cr0, %eax
@@ -36,18 +36,18 @@ f010001d:	0f 20 c0             	mov    %cr0,%eax
 f0100020:	0d 01 00 01 80       	or     $0x80010001,%eax
 	movl	%eax, %cr0
 f0100025:	0f 22 c0             	mov    %eax,%cr0
-
+	# 第3~5句，修改cr0寄存器的值，把cr0的PE位，PG位, WP位都置位1。其中PE位是启用保护标识位，如果被置1代表将会运行在保护模式下。PG位是分页标识位，如果这一位被置1，则代表开启了分页机制。WP位是写保护标识，如果被置位为1，则处理器会禁止超级用户程序向用户级只读页面执行写操作。
 	# Now paging is enabled, but we're still running at a low EIP
 	# (why is this okay?).  Jump up above KERNBASE before entering
-	# C code.
+	# C code. 然后下面两条指令就把当前运行程序的地址空间提高到[0xf0000000-0xf0400000]范围内
 	mov	$relocated, %eax
 f0100028:	b8 2f 00 10 f0       	mov    $0xf010002f,%eax
 	jmp	*%eax
 f010002d:	ff e0                	jmp    *%eax
 
 f010002f <relocated>:
-relocated:
-
+	# 这两个指令分别设置了%ebp，%esp两个寄存器的值。其中%ebp被修改为0。%esp则被修改为bootstacktop的值。这个值为0xf0110000。
+	# 另外在entry.S的末尾还定义了一个值，bootstack。注意，在数据段中定义栈顶bootstacktop之前，首先分配了KSTKSIZE这么多的存储空间，专门用于堆栈，这个KSTKSIZE = 8 * PGSIZE  = 8 * 4096 = 32KB。所以用于堆栈的地址空间为 0xf0108000-0xf0110000，其中栈顶指针指向0xf0110000. 那么这个堆栈实际坐落在内存的 0x00108000-0x00110000物理地址空间中
 	# Clear the frame pointer register (EBP)
 	# so that once we get into debugging C code,
 	# stack backtraces will be terminated properly.
@@ -76,9 +76,7 @@ void
 test_backtrace(int x)
 {
 f0100040:	55                   	push   %ebp
-f0100041:	89 e5                	mov    %esp,%ebp   
-# push   %ebp  mov    %esp,%ebp  是C语言进入函数的惯例 保存上一层函数栈指针ebp 然后再把这一层的 esp 赋值给 ebp (在函数运行期间将当前esp值复制到ebp中。)
-# On entry to a C function, the function's prologue code normally saves the previous function's base pointer by pushing it onto the stack, and then copies the current esp value into ebp for the duration of the function.
+f0100041:	89 e5                	mov    %esp,%ebp
 f0100043:	56                   	push   %esi
 f0100044:	53                   	push   %ebx
 f0100045:	e8 72 01 00 00       	call   f01001bc <__x86.get_pc_thunk.bx>
