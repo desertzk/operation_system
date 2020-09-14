@@ -23,6 +23,7 @@ struct Command {
 
 static struct Command commands[] = {
 	{ "help", "Display this list of commands", mon_help },
+	{ "backtrace", "Display backtrace", mon_backtrace },
 	{ "kerninfo", "Display information about the kernel", mon_kerninfo },
 };
 
