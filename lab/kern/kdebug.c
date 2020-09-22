@@ -4,7 +4,7 @@
 #include <inc/assert.h>
 
 #include <kern/kdebug.h>
-
+//可以看下kernel.ld 里面有对应的
 extern const struct Stab __STAB_BEGIN__[];	// Beginning of stabs table
 extern const struct Stab __STAB_END__[];	// End of stabs table
 extern const char __STABSTR_BEGIN__[];		// Beginning of string table
