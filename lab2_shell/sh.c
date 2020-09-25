@@ -62,7 +62,7 @@ struct cmd *parsecmd(char*);
 void
 runcmd(struct cmd *cmd)
 {
-  int p[2];
+  int p[2],r;
   struct backcmd *bcmd;
   struct execcmd *ecmd;
   struct listcmd *lcmd;
@@ -86,7 +86,7 @@ runcmd(struct cmd *cmd)
     }else{
         strcpy(path, root);                  
         strcat(path, ecmd->argv[0]);         //make the absolute path of this command. for example, you type in "ls", then its absolute path is "/bin/ls"
-        int ret=execv(ecmd->argv[0], ecmd->argv);    
+        int ret=execv(path, ecmd->argv);    
         if(ret!=0)
         {
             fprintf(stderr, "ret %d exec %s failed %s \n",ret, ecmd->argv[0],strerror(errno));
@@ -133,8 +133,8 @@ runcmd(struct cmd *cmd)
     }
     close(p[0]);
     close(p[1]);
-    wait(0);
-    wait(0);
+    wait(&r);
+    wait(&r);
     break;
 
   case BACK:
@@ -149,9 +149,11 @@ runcmd(struct cmd *cmd)
 int
 getcmd(char *buf, int nbuf)
 {
-  fprintf(stderr, "$ ");
+  if (isatty(fileno(stdin)))
+    fprintf(stdout, "6.828$ ");
+  //fprintf(stdin, "$ ");
   memset(buf, 0, nbuf);
-  gets(buf, nbuf);
+  fgets(buf, nbuf,stdin);
   if(buf[0] == 0) // EOF
     return -1;
   return 0;
@@ -173,6 +175,7 @@ main(void)
 
   // Read and run input commands.
   while(getcmd(buf, sizeof(buf)) >= 0){
+      printf(buf);
     if(buf[0] == 'c' && buf[1] == 'd' && buf[2] == ' '){
       // Chdir must be called by the parent, not the child.
       buf[strlen(buf)-1] = 0;  // chop \n
