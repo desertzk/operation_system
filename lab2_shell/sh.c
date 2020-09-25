@@ -98,7 +98,7 @@ runcmd(struct cmd *cmd)
   case REDIR:
     rcmd = (struct redircmd*)cmd;
     close(rcmd->fd);
-    if(open(rcmd->file, rcmd->mode,S_IWUSR|S_IRUSR) < 0){
+    if(open(rcmd->file, rcmd->mode,S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH) < 0){
       fprintf(stderr, "open %s failed %s \n", rcmd->file ,strerror(errno));
       exit(0);
     }
@@ -153,8 +153,7 @@ getcmd(char *buf, int nbuf)
     fprintf(stdout, "6.828$ ");
   //fprintf(stdin, "$ ");
   memset(buf, 0, nbuf);
-  fgets(buf, nbuf,stdin);
-  if(buf[0] == 0) // EOF
+  if(fgets(buf, nbuf,stdin)==0) // EOF
     return -1;
   return 0;
 }
@@ -162,8 +161,8 @@ getcmd(char *buf, int nbuf)
 int
 main(void)
 {
-  static char buf[100];
-  int fd;
+  char buf[100];
+  int fd,r;
 
   // Ensure that three file descriptors are open.
   while((fd = open("console", O_RDWR)) >= 0){
@@ -185,7 +184,7 @@ main(void)
     }
     if(fork1() == 0)
       runcmd(parsecmd(buf));
-    wait(0);
+    wait(&r);
   }
   exit(0);
 }
