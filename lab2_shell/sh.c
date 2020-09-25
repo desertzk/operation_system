@@ -118,8 +118,8 @@ runcmd(struct cmd *cmd)
     if(pipe(p) < 0)
       panic("pipe");
     if(fork1() == 0){
-      close(1);      //关闭标准输出
-      dup(p[1]);     // 4就变成了标准输出
+      close(1);
+      dup(p[1]);
       close(p[0]);
       close(p[1]);
       runcmd(pcmd->left);
