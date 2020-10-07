@@ -16,7 +16,7 @@ static size_t npages_basemem;	// Amount of base memory (in pages)
 // These variables are set in mem_init()
 pde_t *kern_pgdir;		// Kernel's initial page directory
 struct PageInfo *pages;		// Physical page state array
-static struct PageInfo *page_free_list;	// Free list of physical pages
+static struct PageInfo *page_free_list;	// Free list of physical pages 指向page数组中的元素
 
 
 // --------------------------------------------------------------
@@ -32,6 +32,8 @@ nvram_read(int r)
 static void
 i386_detect_memory(void)
 {
+	//从0x00000~0xA0000，这部分叫做basemem 是可用的
+	//从0x100000~0x，这部分叫做extmem，是可用的，这是最重要的内存区域。
 	size_t basemem, extmem, ext16mem, totalmem;
 
 	// Use CMOS calls to measure available base & extended memory.
@@ -48,8 +50,9 @@ i386_detect_memory(void)
 		totalmem = 1 * 1024 + extmem;
 	else
 		totalmem = basemem;
-
+	//记录整个内存的页数
 	npages = totalmem / (PGSIZE / 1024);
+	//basemem的页数
 	npages_basemem = basemem / (PGSIZE / 1024);
 
 	cprintf("Physical memory: %uK available, base = %uK, extended = %uK\n",
@@ -74,7 +77,7 @@ static void check_page_installed_pgdir(void);
 //
 // If n>0, allocates enough pages of contiguous physical memory to hold 'n'
 // bytes.  Doesn't initialize the memory.  Returns a kernel virtual address.
-//
+// 其实就是在物理地址上选出一块空间并返回头指针
 // If n==0, returns the address of the next free page without allocating
 // anything.
 //
@@ -94,7 +97,7 @@ boot_alloc(uint32_t n)
 	// to any kernel code or global variables.
 	if (!nextfree) {
 		extern char end[];
-		nextfree = ROUNDUP((char *) end, PGSIZE);
+		nextfree = ROUNDUP((char *) end, PGSIZE);//这里的end是在kernel.ld定义的
 	}
 
 	// Allocate a chunk large enough to hold 'n' bytes, then update
@@ -102,8 +105,11 @@ boot_alloc(uint32_t n)
 	// to a multiple of PGSIZE.
 	//
 	// LAB 2: Your code here.
-
-	return NULL;
+	result = nextfree;
+	nextfree = ROUNDUP(nextfree+n,PGSIZE);
+	if((uint32_t)nextfree - KERNBASE > (npages * PGSIZE))
+		panic("Out of memory!\n");
+	return result;
 }
 
 // Set up a two-level page table:
@@ -122,6 +128,7 @@ mem_init(void)
 	size_t n;
 
 	// Find out how much memory the machine has (npages & npages_basemem).
+	//这个子函数的功能就是检测现在系统中有多少可用的内存空间。 
 	i386_detect_memory();
 
 	// Remove this line when you're ready to test this function.
@@ -129,9 +136,14 @@ mem_init(void)
 
 	//////////////////////////////////////////////////////////////////////
 	// create initial page directory.
+	/*
+其中kern_pgdir是一个指针，pde_t *kern_pgdir，它是指向操作系统的页目录表的指针，操作系统之后
+工作在虚拟内存模式下时，就需要这个页目录表进行地址转换。我们为这个页目录表分配的内存大小空间为PGSIZE，
+即一个页的大小。并且首先把这部分内存清0。
+	*/
 	kern_pgdir = (pde_t *) boot_alloc(PGSIZE);
 	memset(kern_pgdir, 0, PGSIZE);
-
+	//所以这条kern_pgdir = (pde_t *) boot_alloc(PGSIZE);指令就会分配一个页的内存，并且这个页就是紧跟着操作系统内核之后。
 	//////////////////////////////////////////////////////////////////////
 	// Recursively insert PD in itself as a page table, to form
 	// a virtual page table at virtual address UVPT.
@@ -139,6 +151,9 @@ mem_init(void)
 	// following line.)
 
 	// Permissions: kernel R, user R
+	//这指令就是在为页目录表添加第一个页目录表项。通过查看memlayout.h文件，我们可以看到，
+	//UVPT的定义是一段虚拟地址的起始地址，0xef400000，从这个虚拟地址开始，存放的就是这个
+	//操作系统的页表kern_pgdir，所以我们必须把它和页表kern_pgdir的物理地址映射起来，PADDR(kern_pgdir)就是在计算kern_pgdir所对应的真实物理地址。
 	kern_pgdir[PDX(UVPT)] = PADDR(kern_pgdir) | PTE_U | PTE_P;
 
 	//////////////////////////////////////////////////////////////////////
@@ -148,6 +163,10 @@ mem_init(void)
 	// array.  'npages' is the number of physical pages in memory.  Use memset
 	// to initialize all fields of each struct PageInfo to 0.
 	// Your code goes here:
+	//这条命令要完成的功能是分配一块内存，用来存放一个struct PageInfo的数组，数组中的每一个PageInfo代表内存当中的一页。
+	//操作系统内核就是通过这个数组来追踪所有内存页的使用情况的
+	pages = (struct PageInfo *)boot_alloc(npages * sizeof(struct PageInfo));
+	memset(pages,0,npages*sizeof(struct PageInfo));
 
 
 	//////////////////////////////////////////////////////////////////////
@@ -230,14 +249,17 @@ mem_init(void)
 // After this is done, NEVER use boot_alloc again.  ONLY use the page
 // allocator functions below to allocate and deallocate physical
 // memory via the page_free_list.
-//
+//1. 初始化pages数组 2.初始化pages_free_list链表，这个数组中存放着所有空闲页的信息
 void
 page_init(void)
 {
 	// The example code here marks all physical pages as free.
 	// However this is not truly the case.  What memory is free?
 	//  1) Mark physical page 0 as in use.
-	//     This way we preserve the real-mode IDT and BIOS structures
+	//     This way we preserve the real-mode IDT（The Interrupt Descriptor Table (IDT) 
+	//is a data structure used by the x86 architecture to implement an interrupt vector 
+	//table. The IDT is used by the processor to determine the correct response to interrupts and exceptions.） 
+	//     and BIOS structures
 	//     in case we ever need them.  (Currently we don't, but...)
 	//  2) The rest of base memory, [PGSIZE, npages_basemem * PGSIZE)
 	//     is free.
@@ -248,14 +270,43 @@ page_init(void)
 	//     in physical memory?  Which pages are already in use for
 	//     page tables and other data structures?
 	//
+/*
+我们可以到这个函数的定义处具体查看，整个函数是由一个for循环构成，它会遍历所有内存页所对应的在
+npages数组中的PageInfo结构体，并且根据这个页当前的状态来修改这个结构体的状态，如果页已被占用，
+那么要把PageInfo结构体中的pp_ref属性置一；如果是空闲页，则要把这个页送入pages_free_list链表中。
+根据注释中的提示，第0页已被占用，io hole部分已被占用，还有在extmem区域还有一部分已经被占用。
+*/
+    // 1）第0页不用，留给中断描述符表
+    // 2）第1-159页可以使用，加入空闲链表（npages_basemem为160，即640K以下内存)
+    // 3）640K-1M空间保留给BIOS和显存，不能加入空闲链表
+    // 4）1M以上空间中除去kernel已经占用的页，其他都可以使用
 	// Change the code to reflect this.
 	// NB: DO NOT actually touch the physical memory corresponding to
 	// free pages!
 	size_t i;
+	page_free_list = NULL;
+	//num_extmem_alloc：在extmem区域已经被占用的页的个数
+	int num_extmem_alloc = ((uint32_t)boot_alloc(0)-KERNBASE)/PGSIZE;
+	//num_iohole：在io hole区域占用的页数
+	int num_iohole = (EXTPHYSMEM - IOPHYSMEM)/PGSIZE;
+
 	for (i = 0; i < npages; i++) {
-		pages[i].pp_ref = 0;
-		pages[i].pp_link = page_free_list;
-		page_free_list = &pages[i];
+		if(i==0)
+		{
+        	pages[i].pp_ref = 1;
+        	pages[i].pp_link = NULL;
+        	continue;
+		}else if(i>=npages_basemem && i<npages_basemem+num_iohole+num_extmem_alloc){
+        	pages[i].pp_ref = 1;
+        	pages[i].pp_link = NULL;
+        	continue;
+		}else{
+			pages[i].pp_ref = 0;
+			pages[i].pp_link = page_free_list;
+			page_free_list = &pages[i];
+		}
+		
+
 	}
 }
 
@@ -269,25 +320,51 @@ page_init(void)
 // page_free can check for double-free bugs.
 //
 // Returns NULL if out of free memory.
-//
+//　　1. 从free_page_list中取出一个空闲页的PageInfo结构体
+//　　2. 修改free_page_list相关信息，比如修改链表表头
+//　　3. 修改取出的空闲页的PageInfo结构体信息，初始化该页的内存
 // Hint: use page2kva and memset
 struct PageInfo *
 page_alloc(int alloc_flags)
 {
 	// Fill this function in
-	return 0;
+	struct PageInfo *result;
+	if(page_free_list==NULL)
+		return NULL;
+	
+	//链表 指向 下一个
+	result = page_free_list;
+	page_free_list = result->pp_link;
+	result->pp_link = NULL;
+
+	if(alloc_flags & ALLOC_ZERO)
+	{
+		//PageInfo 结构 pp 所对应的物理页面的内核首地址
+		void* kernel_virual_address = page2kva(result);
+		memset(kernel_virual_address,0,PGSIZE);
+	}
+			
+	
+	return result;
 }
 
-//
+
 // Return a page to the free list.
 // (This function should only be called when pp->pp_ref reaches 0.)
-//
+//　　1. 修改被回收的页的PageInfo结构体的相应信息。
+//　　2. 把该结构体插入回page_free_list空闲页链表。
 void
 page_free(struct PageInfo *pp)
 {
 	// Fill this function in
 	// Hint: You may want to panic if pp->pp_ref is nonzero or
 	// pp->pp_link is not NULL.
+	assert(pp->pp_ref == 0);
+	assert(pp->pp_link == NULL);
+
+	//pp的下一个赋值为当前free page
+	pp->pp_link = page_free_list;
+	page_free_list = pp;        //置成当前需要的free page
 }
 
 //

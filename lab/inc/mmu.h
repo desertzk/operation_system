@@ -26,19 +26,35 @@
 // To construct a linear address la from PDX(la), PTX(la), and PGOFF(la),
 // use PGADDR(PDX(la), PTX(la), PGOFF(la)).
 
+/*
+A page is simply a contiguous chunk of memory. x86 (32-bit) supports 3 sizes of pages: 
+4MB, 2MB, and 4KB, with the latter being the most commonly used in mainstream operating systems. 
+A page table is an array of 1024 * 32-bit entries (conveniently fitting into a single 4KB page). 
+Each entry points to the physical address of a page. Because a single page table is not able to 
+represent the entire address space on its own (1024 entries * 4KB = only 22-bits of address space), 
+we require a second level page table: a page directory. A page directory also consists of 1024 * 32-bit entries 
+(again fitting into a single page), each pointing to a page table. We can see that now 1024 * 1024 * 4KB = 32-bits and with this 3-level structure we are able to map the entire 4GB virtual address space.
+
+When the CPU is asked to access a virtual address, it uses the 10 highest order bits (31:22) to index 
+into the page directory table (the base address of which is stored in a special register). The next 10 highest order bits (21:12) are used to index into the page table pointed to by the page directory entry. The lowest 12 order bits (11:0) are finally used to index a byte in the page pointed to by the page table entry.
+
+In other systems there may be more or fewer levels of page table required, depending on the size of the virtual address space and the page sizes supported. For example, x86 with 4MB pages only needs a single page directory. In 64-bit mode with 4KB pages, a 4-level system is used: a page mapping level 4 table contains entries that point to one of many page directories.
+*/
+
+
 // page number field of address
 #define PGNUM(la)	(((uintptr_t) (la)) >> PTXSHIFT)
-
-// page directory index
+// 页目录项索引(高10位)
+// page directory index 看传入地址在你哪个
 #define PDX(la)		((((uintptr_t) (la)) >> PDXSHIFT) & 0x3FF)
-
+// 页表项索引（中间10位）
 // page table index
 #define PTX(la)		((((uintptr_t) (la)) >> PTXSHIFT) & 0x3FF)
-
+// 页内偏移
 // offset in page
 #define PGOFF(la)	(((uintptr_t) (la)) & 0xFFF)
 
-// construct linear address from indexes and offset
+// construct linear address from indexes and offset 由索引构造线性地址
 #define PGADDR(d, t, o)	((void*) ((d) << PDXSHIFT | (t) << PTXSHIFT | (o)))
 
 // Page directory and page table constants.
@@ -47,7 +63,7 @@
 
 #define PGSIZE		4096		// bytes mapped by a page
 #define PGSHIFT		12		// log2(PGSIZE)
-
+//page table size页表大小
 #define PTSIZE		(PGSIZE*NPTENTRIES) // bytes mapped by a page directory entry
 #define PTSHIFT		22		// log2(PTSIZE)
 

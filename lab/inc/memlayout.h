@@ -83,13 +83,14 @@
  */
 
 
-// All physical memory mapped at this address
-#define	KERNBASE	0xF0000000
+// All physical memory mapped at this address 
+//只有后面7位可以利用所以是256M
+#define	KERNBASE	0xF0000000 
 
 // At IOPHYSMEM (640K) there is a 384K hole for I/O.  From the kernel,
 // IOPHYSMEM can be addressed at KERNBASE + IOPHYSMEM.  The hole ends
 // at physical address EXTPHYSMEM.
-#define IOPHYSMEM	0x0A0000
+#define IOPHYSMEM	0x0A0000     //lab1 VGA Display 16-bit devices expansion ROMs
 #define EXTPHYSMEM	0x100000
 
 // Kernel stack.
@@ -98,8 +99,8 @@
 #define KSTKGAP		(8*PGSIZE)   		// size of a kernel stack guard
 
 // Memory-mapped IO.
-#define MMIOLIM		(KSTACKTOP - PTSIZE)
-#define MMIOBASE	(MMIOLIM - PTSIZE)
+#define MMIOLIM		(KSTACKTOP - PTSIZE) //0xF0000000 - 0x400000 = 0xEFC00000
+#define MMIOBASE	(MMIOLIM - PTSIZE) //0xEFC00000-0x400000 = 0xEF800000
 
 #define ULIM		(MMIOBASE)
 
@@ -109,7 +110,7 @@
  */
 
 // User read-only virtual page table (see 'uvpt' below)
-#define UVPT		(ULIM - PTSIZE)
+#define UVPT		(ULIM - PTSIZE) //0xEF800000-0x400000=0xEF400000
 // Read-only copies of the Page structures
 #define UPAGES		(UVPT - PTSIZE)
 // Read-only copies of the global env structures
