@@ -17,6 +17,12 @@ pte_t entry_pgtable[NPTENTRIES];
 // related to linking and static initializers, we use "x + PTE_P"
 // here, rather than the more standard "x | PTE_P".  Everywhere else
 // you should use "|" to combine flags.
+/*
+ we installed a simple page table so that the kernel could run at its link 
+ address of 0xf0100000, even though it is actually loaded in physical memory
+  just above the ROM BIOS at 0x00100000. This page table mapped only 4MB of 
+  memory.
+*/
 __attribute__((__aligned__(PGSIZE)))
 pde_t entry_pgdir[NPDENTRIES] = {
 	// Map VA's [0, 4MB) to PA's [0, 4MB)

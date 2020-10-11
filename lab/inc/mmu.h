@@ -71,24 +71,24 @@ In other systems there may be more or fewer levels of page table required, depen
 #define PDXSHIFT	22		// offset of PDX in a linear address
 
 // Page table/directory entry flags.
-#define PTE_P		0x001	// Present
-#define PTE_W		0x002	// Writeable
-#define PTE_U		0x004	// User
-#define PTE_PWT		0x008	// Write-Through
-#define PTE_PCD		0x010	// Cache-Disable
-#define PTE_A		0x020	// Accessed
-#define PTE_D		0x040	// Dirty
-#define PTE_PS		0x080	// Page Size
+#define PTE_P		0x001	// Present 判断对应物理页面是否存在，存在为1，否则为0
+#define PTE_W		0x002	// Writeable 该位用来判断对所指向的物理页面是否可写，1可写，0不可写
+#define PTE_U		0x004	// User 该位用来定义页面的访问者应该具备的权限。为1是User权限即可，如果为 0，表示需要高特权级才能访问
+#define PTE_PWT		0x008	// Write-Through 1=Write-through，0=Write-back
+#define PTE_PCD		0x010	// Cache-Disable 1为禁用缓存，0不禁用
+#define PTE_A		0x020	// Accessed 最近是否被访问
+#define PTE_D		0x040	// Dirty 是否被修改
+#define PTE_PS		0x080	// Page Size 
 #define PTE_G		0x100	// Global
 
 // The PTE_AVAIL bits aren't used by the kernel or interpreted by the
 // hardware, so user processes are allowed to set them arbitrarily.
-#define PTE_AVAIL	0xE00	// Available for software use
+#define PTE_AVAIL	0xE00	// Available for software use 可以被系统程序所使用
 
 // Flags in PTE_SYSCALL may be used in system calls.  (Others may not.)
 #define PTE_SYSCALL	(PTE_AVAIL | PTE_P | PTE_W | PTE_U)
 
-// Address in page table or page directory entry
+// Address in page table or page directory entry 后12位全部置0 后12位是Offset位
 #define PTE_ADDR(pte)	((physaddr_t) (pte) & ~0xFFF)
 
 // Control Register flags
