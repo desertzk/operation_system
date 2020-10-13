@@ -33,7 +33,8 @@ _paddr(const char *file, int line, void *kva)
 }
 
 /* This macro takes a physical address and returns the corresponding kernel
- * virtual address.  It panics if you pass an invalid physical address. */
+ * virtual address.  It panics if you pass an invalid physical address. 这个实现
+ * 就是把 pa加上一个0xF0000000 */
 #define KADDR(pa) _kaddr(__FILE__, __LINE__, pa)
 
 static inline void*

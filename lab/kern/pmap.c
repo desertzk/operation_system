@@ -97,7 +97,7 @@ boot_alloc(uint32_t n)
 	// to any kernel code or global variables.
 	if (!nextfree) {
 		extern char end[];
-		nextfree = ROUNDUP((char *) end, PGSIZE);//这里的end是在kernel.ld定义的
+		nextfree = ROUNDUP((char *) end, PGSIZE);//这里的end是在kernel.ld定义的.bss段后面的
 	}
 
 	// Allocate a chunk large enough to hold 'n' bytes, then update
@@ -415,7 +415,7 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
 	pde_t *pg_dir_entry=NULL;
 	pte_t *page_table=NULL;
 	struct PageInfo *new_page=NULL;
-	//虚拟地址高10位是 page directory index 可以见有道云笔记的图
+	//虚拟地址高10位是 page directory index 可以见有道云笔记的图 Page Directory上根据索引项index找到对应页目录条目
 	pg_dir_entry=&pgdir[PDX(va)];
 	//判断这个页目录项对应的页表页是否已经在内存中。
 	if(!(*pg_dir_entry & PTE_P)){
@@ -540,11 +540,32 @@ page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 //
 // Hint: the TA solution uses pgdir_walk and pa2page.
 //
+/*
+返回虚拟地址va所映射的物理页的PageInfo结构体的指针，如果pte_store参数不为0，
+则把这个物理页的页表项地址存放在pte_store中。 这个函数的功能就很容易实现了，
+我们只需要调用pgdir_walk函数获取这个va对应的页表项，然后判断这个页是否已经在内存中，
+如果在则返回这个页的PageInfo结构体指针。并且把这个页表项的内容存放到pte_store中。
+*/
 struct PageInfo *
 page_lookup(pde_t *pgdir, void *va, pte_t **pte_store)
 {
 	// Fill this function in
-	return NULL;
+	pte_t entry = NULL;
+	struct PageInfo* ret = NULL;
+	entry = pgdir_walk(pgdir,va,false);
+	if(entry == NULL)
+		return NULL;
+
+	if(!(*entry & PTE_P))
+		return NULL;
+
+	ret = pa2page(PTE_ADDR(*entry));
+	if(pte_store != NULL)
+		*pte_store = entry;
+
+
+
+	return ret;
 }
 
 //
@@ -562,10 +583,27 @@ page_lookup(pde_t *pgdir, void *va, pte_t **pte_store)
 // Hint: The TA solution is implemented using page_lookup,
 // 	tlb_invalidate, and page_decref.
 //
+/*
+功能就是把虚拟地址va和物理页的映射关系删除。 
+　　注释里面还提示了要注意的几个细节： 
+　　1. pp_ref值要减一 
+　　2. 如果pp_ref减为0，要把这个页回收 
+　　3. 这个页对应的页表项应该被置0
+*/
 void
 page_remove(pde_t *pgdir, void *va)
 {
 	// Fill this function in
+	pte_t *entry = NULL;
+	struct PageInfo *page = page_lookup(pgdir, va, &entry);
+
+	if(page == NULL)
+		return;
+
+	page_decref(page);
+	tlb_invalidate(pgdir,va);
+	*entry = 0;
+
 }
 
 //
