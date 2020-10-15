@@ -21,6 +21,7 @@ extern pde_t *kern_pgdir;
  * KERNBASE, where the machine's maximum 256MB of physical memory is mapped --
  * and returns the corresponding physical address.  It panics if you pass it a
  * non-kernel virtual address. 应该就是在计算 虚拟地址所对应的真实物理地址
+ * 虚拟地址 - 0xF0000000转化为物理地址
  */
 #define PADDR(kva) _paddr(__FILE__, __LINE__, kva)
 
@@ -34,7 +35,8 @@ _paddr(const char *file, int line, void *kva)
 
 /* This macro takes a physical address and returns the corresponding kernel
  * virtual address.  It panics if you pass an invalid physical address. 这个实现
- * 就是把 pa加上一个0xF0000000 */
+ * 就是把 pa加上一个0xF0000000 
+ * 内核虚拟地址 与 物理地址之间就差0xF0000000 */
 #define KADDR(pa) _kaddr(__FILE__, __LINE__, pa)
 
 static inline void*
@@ -71,11 +73,11 @@ void	page_decref(struct PageInfo *pp);
 
 void	tlb_invalidate(pde_t *pgdir, void *va);
 
+// 由PageInfo结构得到页面物理地址这里没看懂
 static inline physaddr_t
-
-// 由PageInfo结构得到页面物理地址
 page2pa(struct PageInfo *pp)
 {
+	//pages PageInfo数组首地址
 	return (pp - pages) << PGSHIFT;
 }
 
