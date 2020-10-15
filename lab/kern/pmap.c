@@ -132,7 +132,7 @@ mem_init(void)
 	i386_detect_memory();
 
 	// Remove this line when you're ready to test this function.
-	panic("mem_init: This function is not finished\n");
+	//panic("mem_init: This function is not finished\n");
 
 	//////////////////////////////////////////////////////////////////////
 	// create initial page directory.
@@ -412,7 +412,7 @@ pte_t *
 pgdir_walk(pde_t *pgdir, const void *va, int create)
 {
 	assert(pgdir!=NULL);
-	pde_t *pg_dir_entry=NULL;
+	pde_t pg_dir_entry=0;
 	pte_t *page_table=NULL;
 	struct PageInfo *new_page=NULL;
 	//虚拟地址高10位是 page directory index 可以见有道云笔记的图 Page Directory上根据索引项index找到对应页目录条目
@@ -529,7 +529,7 @@ page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 	}
 
 	*entry = (page2pa(pp)| perm | PTE_P);
-	pgdir[PDX(va)] = entry;
+	//pgdir[PDX(va)] = *entry;
 
 	return 0;
 }
@@ -555,7 +555,7 @@ struct PageInfo *
 page_lookup(pde_t *pgdir, void *va, pte_t **pte_store)
 {
 	// Fill this function in
-	pte_t entry = NULL;
+	pte_t *entry = NULL;
 	struct PageInfo* ret = NULL;
 	entry = pgdir_walk(pgdir,va,false);
 	if(entry == NULL)
