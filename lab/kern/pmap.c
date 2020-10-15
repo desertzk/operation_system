@@ -431,7 +431,7 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
 		}
 
 	}
-	//虚拟地址转物理地址  pg_dir_entry的后12位置0 相当于只去前20位也就是图片里的PPN
+	//物理地址 to 虚拟地址  pg_dir_entry的后12位置0 相当于只去前20位也就是图片里的PPN
 	page_table = KADDR(PTE_ADDR(pg_dir_entry));
 	//a pointer to the page table entry (PTE) for linear address 'va'.
 	pte_t *page_table_result = &page_table[PTX(va)];	

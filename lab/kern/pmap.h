@@ -77,7 +77,9 @@ void	tlb_invalidate(pde_t *pgdir, void *va);
 static inline physaddr_t
 page2pa(struct PageInfo *pp)
 {
-	//pages PageInfo数组首地址
+	//pages PageInfo数组首地址 所以通过pp(pages[i])-pages可以得到页的编号i，
+	//在通过i<<12就可以得到pp所对应的页的物理内存，由于实现系统的物理内存和虚拟内存的转换比较简单，
+	//虚拟内存=物理内存+ 0xF0000000.所以通过pages这个结构体，在知道具体的物理页时，就可以很容易得到物理页对应的物理地址和虚拟地址
 	return (pp - pages) << PGSHIFT;
 }
 
