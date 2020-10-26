@@ -164,7 +164,7 @@ mem_init(void)
 	// to initialize all fields of each struct PageInfo to 0.
 	// Your code goes here:
 	//这条命令要完成的功能是分配一块内存，用来存放一个struct PageInfo的数组，数组中的每一个PageInfo代表内存当中的一页。
-	//操作系统内核就是通过这个数组来追踪所有内存页的使用情况的
+	//操作系统内核就是通过这个数组来追踪所有内存页的使用情况的 这里申请的PageInfo数组应该都在0xf000000之后
 	pages = (struct PageInfo *)boot_alloc(npages * sizeof(struct PageInfo));
 	memset(pages,0,npages*sizeof(struct PageInfo));
 
@@ -651,7 +651,7 @@ check_page_free_list(bool only_low_memory)
 			int pagetype = PDX(page2pa(pp)) >= pdx_limit;
 			*tp[pagetype] = pp;
 			tp[pagetype] = &pp->pp_link;
-		}
+		}						//遍历链表后，pp1指向（0~4M）中地址最大的那个页的PageInfo结构。pp2指向所有页中地址最大的那个PageInfo结构
 		*tp[1] = 0;
 		*tp[0] = pp2;
 		page_free_list = pp1;

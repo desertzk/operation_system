@@ -173,20 +173,20 @@ cga_putc(int c)
 			crt_buf[crt_pos] = (c & ~0xff) | ' ';
 		}
 		break;
-	case '\n':
+	case '\n':					//如果遇到的是换行符，将光标位置下移一行，也就是加上80（每一行占80个光标位置）
 		crt_pos += CRT_COLS;
 		/* fallthru */
-	case '\r':
+	case '\r':					//如果遇到的是回车符，将光标移到当前行的开头，也就是crt_post-crt_post%80
 		crt_pos -= (crt_pos % CRT_COLS);
 		break;
-	case '\t':
+	case '\t':					//制表符很显然
 		cons_putc(' ');
 		cons_putc(' ');
 		cons_putc(' ');
 		cons_putc(' ');
 		cons_putc(' ');
 		break;
-	default:
+	default:					//普通字符的情况，直接将ascii码填到显存中
 		crt_buf[crt_pos++] = c;		/* write the character */
 		break;
 	}
