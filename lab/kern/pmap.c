@@ -191,6 +191,8 @@ mem_init(void)
 	//      (ie. perm = PTE_U | PTE_P)
 	//    - pages itself -- kernel RW, user NONE
 	// Your code goes here:
+	// 将虚拟地址的UPAGES映射到物理地址pages数组开始的位置
+	boot_map_region(kern_pgdir, UPAGES, PTSIZE, PADDR(pages), PTE_U);
 
 	//////////////////////////////////////////////////////////////////////
 	// Use the physical memory that 'bootstack' refers to as the kernel
@@ -203,6 +205,8 @@ mem_init(void)
 	//       overwrite memory.  Known as a "guard page".
 	//     Permissions: kernel RW, user NONE
 	// Your code goes here:
+	// 'bootstack'定义在/kernel/entry.
+	boot_map_region(kern_pgdir, KSTACKTOP-KSTKSIZE, KSTKSIZE, PADDR(bootstack), PTE_W);
 
 	//////////////////////////////////////////////////////////////////////
 	// Map all of physical memory at KERNBASE.
@@ -212,6 +216,7 @@ mem_init(void)
 	// we just set up the mapping anyway.
 	// Permissions: kernel RW, user NONE
 	// Your code goes here:
+	boot_map_region(kern_pgdir, KERNBASE, 0xffffffff - KERNBASE, 0, PTE_W);
 
 	// Check that the initial page directory has been set up correctly.
 	check_kern_pgdir();
@@ -407,35 +412,61 @@ page_decref(struct PageInfo* pp)
 3. 如果在，计算这个页表页的基地址page_table，然后返回va所对应页表项的地址 &page_table[PTX(va)] (22-23) 
 4. 如果不在则，且create为true则分配新的页，并且把这个页的信息添加到页目录项pg_dir_entry中。(13-18) 
 5. 如果create为false，则返回NULL。(11-12) 
-*/
+
+pte_t *
+pgdir_walk(pde_t *pgdir, const void *va, int create)
+{
+	// Fill this function in
+	pde_t* pde_ptr = pgdir + PDX(va);
+	if (!(*pde_ptr & PTE_P)) {								//页表还没有分配
+		if (create) {
+			//分配一个页作为页表
+			struct PageInfo *pp = page_alloc(1);
+			if (pp == NULL) {
+				return NULL;
+			}
+			pp->pp_ref++;
+			*pde_ptr = (page2pa(pp)) | PTE_P | PTE_U | PTE_W;	//更新页目录
+		} else {
+			return NULL;
+		}
+	}
+
+	return (pte_t *)KADDR(PTE_ADDR(*pde_ptr)) + PTX(va);		//这里记得转为pte_t*类型，因为KADDR返回的的是void*类型。调了一个多小时才发现
+}*/
+
 pte_t *
 pgdir_walk(pde_t *pgdir, const void *va, int create)
 {
 	assert(pgdir!=NULL);
-	pde_t pg_dir_entry=0;
+	//pde_t pg_dir_entry=0;
 	pte_t *page_table=NULL;
 	struct PageInfo *new_page=NULL;
 	//虚拟地址高10位是 page directory index 可以见有道云笔记的图 Page Directory上根据索引项index找到对应页目录条目
-	pg_dir_entry=pgdir[PDX(va)];
+	//pg_dir_entry=pgdir[PDX(va)]; 排查了好久 一定要向下一行这种写法 因为pg_dir_entry这个变量的地址和ppg_dir_entry指针不同
+	
+	pde_t *ppg_dir_entry=&pgdir[PDX(va)];
+	//cprintf("ppg_dir_entry %d\n",*ppg_dir_entry);
 	//判断这个页目录项对应的页表页是否已经在内存中。
-	if(!(pg_dir_entry & PTE_P)){
+	if(!(*ppg_dir_entry & PTE_P)){
 		if(create)
 		{   //分配新页设置权限
 			new_page = page_alloc(ALLOC_ZERO);
 			if(new_page == NULL)
 				return NULL;
 			++new_page->pp_ref;
-			pg_dir_entry = (page2pa(new_page) | PTE_P |PTE_W | PTE_U);
+			*ppg_dir_entry = (page2pa(new_page) | PTE_P |PTE_W | PTE_U);
 		}else{
 			return NULL;  	
 		}
 
 	}
 	//物理地址 to 虚拟地址  pg_dir_entry的后12位置0 相当于只去前20位也就是图片里的PPN
-	page_table = KADDR(PTE_ADDR(pg_dir_entry));
+	page_table = (pte_t *)KADDR(PTE_ADDR(*ppg_dir_entry));
+	//cprintf("page_table %d\n",page_table);
 	//a pointer to the page table entry (PTE) for linear address 'va'.
-	pte_t *page_table_result = &page_table[PTX(va)];	
-
+	pte_t *page_table_result = page_table + PTX(va);	
+	//cprintf("page_table_result %d\n",page_table_result);
 
 	return page_table_result;
 }
@@ -517,20 +548,20 @@ page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
     // 参数3: 线性地址，JOS 中等于虚拟地址
     // 参数4: 权限
     // 返回: 成功(0)，失败(-E_NO_MEM)
-	pte_t *entry = pgdir_walk(pgdir,va,1);
-	if(entry == NULL)
+	pte_t *pte = pgdir_walk(pgdir,va,1);
+	if(pte == NULL)
 		return -E_NO_MEM;
 
 	pp->pp_ref++;
-	if(*entry&PTE_P)
+	if(*pte&PTE_P)
 	{
 		tlb_invalidate(pgdir,va);
 		page_remove(pgdir,va);
 	}
-
-	*entry = (page2pa(pp)| perm | PTE_P);
-	//pgdir[PDX(va)] = *entry;
-
+	physaddr_t pa = page2pa(pp);
+	*pte = pa | perm | PTE_P;
+	pgdir[PDX(va)] |= perm;
+	
 	return 0;
 }
 
