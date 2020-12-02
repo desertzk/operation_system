@@ -85,7 +85,7 @@ allocproc(void)
   release(&ptable.lock);
   return 0;
 
-found:
+found://set up the new process’s kernel stack 内存模型详见book-rev11 Figure 1-4
   p->state = EMBRYO;
   p->pid = nextpid++;
 
@@ -96,20 +96,33 @@ found:
     p->state = UNUSED;
     return 0;
   }
+  /*
+    SP/ESP/RSP: Stack pointer for top address of the stack.
+  */
   sp = p->kstack + KSTACKSIZE;
 
   // Leave room for trap frame.
   sp -= sizeof *p->tf;
-  p->tf = (struct trapframe*)sp;
-
+  p->tf = (struct trapframe*)sp; //trapframe which stores the user registers.
+/*allocproc does part of this work
+by setting up return program counter values that will cause the new process’s kernel
+thread to first execute in forkret and then in trapret*/
   // Set up new context to start executing at forkret,
-  // which returns to trapret.
+  // which returns to trapret. 
   sp -= 4;
-  *(uint*)sp = (uint)trapret;
+  *(uint*)sp = (uint)trapret; //define in trapasm.S   that is where forkret will return.
 
   sp -= sizeof *p->context;
   p->context = (struct context*)sp;
   memset(p->context, 0, sizeof *p->context);
+  /*
+  IP/EIP/RIP: Instruction pointer. 
+  Holds the program counter, the address of next instruction.
+  The kernel thread
+  will start executing with register contents copied from p->context. Thus setting p-
+  >context->eip to forkret will cause the kernel thread to execute at the start of
+  forkret
+  */
   p->context->eip = (uint)forkret;
 
   return p;
@@ -117,6 +130,17 @@ found:
 
 //PAGEBREAK: 32
 // Set up first user process.
+/*
+Userinit’s first action is to call allocproc. The job
+of allocproc (2473) is to allocate a slot (a struct proc) in the process table and to
+initialize the parts of the process’s state required for its kernel thread to execute. 
+Allocproc is called for each new process, while userinit is called only for the very first
+process. Allocproc scans the proc table for a slot with state UNUSED (2480-2482). When
+it finds an unused slot, allocproc sets the state to EMBRYO to mark it as used and
+gives the process a unique pid (2469-2489). Next, it tries to allocate a kernel stack for
+the process’s kernel thread. If the memory allocation fails, allocproc changes the
+state back to UNUSED and returns zero to signal failure.
+*/
 void
 userinit(void)
 {
@@ -128,17 +152,31 @@ userinit(void)
   initproc = p;
   if((p->pgdir = setupkvm()) == 0)
     panic("userinit: out of memory?");
+  /*the linker embeds that binary in the kernel and defines two special symbols, 
+  _binary_initcode_start and _binary_initcode_size, indicating the location and size of the binary. 
+  Userinit copies that binary into the new process’s memory by calling inituvm,*/
   inituvm(p->pgdir, _binary_initcode_start, (int)_binary_initcode_size);
   p->sz = PGSIZE;
   memset(p->tf, 0, sizeof(*p->tf));
-  p->tf->cs = (SEG_UCODE << 3) | DPL_USER;
+/*
+  userinit writes values at the top of the new stack that look just like those that would be there if the 
+  process had entered the kernel via an interrupt userinit (2533) set up the low bits of %cs to run the process’s user code at CPL=3
+means that the user code can only use pages with PTE_U set, and cannot modify sensitive hardware registers 
+such as %cr3. So the process is constrained to using only its own memory
+*/
+  p->tf->cs = (SEG_UCODE << 3) | DPL_USER; //user mode rather than kernel mode
   p->tf->ds = (SEG_UDATA << 3) | DPL_USER;
   p->tf->es = p->tf->ds;
   p->tf->ss = p->tf->ds;
-  p->tf->eflags = FL_IF;
+  p->tf->eflags = FL_IF; //The %eflags FL_IF bit is set to allow hardware interrupts
   p->tf->esp = PGSIZE;
   p->tf->eip = 0;  // beginning of initcode.S
-
+/*
+if the process had entered the kernel via an interrupt (2533-2539), so that the ordinary code for returning from 
+the kernel back to the process’s user code will work.
+*/
+//The function userinit sets p->name to initcode mainly for debugging. Setting
+//p->cwd sets the process’s current working directory
   safestrcpy(p->name, "initcode", sizeof(p->name));
   p->cwd = namei("/");
 
@@ -311,7 +349,7 @@ wait(void)
   }
 }
 
-//PAGEBREAK: 42
+//PAGEBREAK: 42 进程调度规划
 // Per-CPU process scheduler.
 // Each CPU calls scheduler() after setting itself up.
 // Scheduler never returns.  It loops, doing:
@@ -332,6 +370,7 @@ scheduler(void)
 
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
+    //looks for a process with p->state set to RUNNABLE
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
       if(p->state != RUNNABLE)
         continue;
@@ -342,7 +381,14 @@ scheduler(void)
       c->proc = p;
       switchuvm(p);
       p->state = RUNNING;
-
+      /*
+      swtch first saves the current registers.
+The current context is not a process but rather a special per-cpu scheduler context,
+so scheduler tells swtch to save the current hardware registers in per-cpu storage
+(cpu->scheduler) rather than in any process’s kernel thread context. swtch then
+loads the saved registers of the target kernel thread (p->context) into the x86 hardware
+registers, including the stack pointer and instruction pointer
+      */
       swtch(&(c->scheduler), p->context);
       switchkvm();
 
@@ -393,6 +439,13 @@ yield(void)
 
 // A fork child's very first scheduling by scheduler()
 // will swtch here.  "Return" to user space.
+/*
+forkret (2853)
+runs initialization functions that cannot be run from main because they must be run
+in the context of a regular process with its own kernel stack. Then, forkret returns.
+Allocproc arranged that the top word on the stack after p->context is popped off
+would be trapret, so now trapret begins executing, with %esp set to p->tf.
+*/
 void
 forkret(void)
 {

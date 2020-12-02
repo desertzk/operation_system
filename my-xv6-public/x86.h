@@ -147,6 +147,7 @@ lcr3(uint val)
 //PAGEBREAK: 36
 // Layout of the trap frame built on the stack by the
 // hardware and by trapasm.S, and passed to trap().
+//trapframe which stores the user registers.
 struct trapframe {
   // registers as pushed by pusha
   uint edi;

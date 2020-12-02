@@ -17,7 +17,7 @@
 #include "fcntl.h"
 
 // Fetch the nth word-sized system call argument as a file descriptor
-// and return both the descriptor and the corresponding struct file.
+// and return both the descriptor and the corresponding struct file.一个文件描述符对应一个file结构体
 static int
 argfd(int n, int *pfd, struct file **pf)
 {
@@ -65,6 +65,22 @@ sys_dup(void)
   filedup(f);
   return fd;
 }
+
+// int
+// sys_dup2(void)
+// {
+//   struct file *f1,*f2;
+//   int fd;
+
+//   if(argfd(0, 0, &f) < 0)
+//     return -1;
+//   if((fd=fdalloc(f)) < 0)
+//     return -1;
+//   filedup(f);
+//   return fd;
+// }
+
+
 
 int
 sys_read(void)

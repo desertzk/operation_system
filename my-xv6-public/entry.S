@@ -41,6 +41,9 @@ multiboot_header:
 _start = V2P_WO(entry)
 
 # Entering xv6 on boot processor, with paging off.
+/*When a PC powers on, it initializes itself and then loads a boot loader from disk
+into memory and executes it. Appendix B explains the details. Xv6’s boot loader loads
+the xv6 kernel from disk and executes it starting at entry*/
 .globl entry
 entry:
   # Turn on page size extension for 4Mbyte pages
@@ -56,6 +59,8 @@ entry:
   movl    %eax, %cr0
 
   # Set up the stack pointer.
+  /*Now entry needs to transfer to the kernel’s C code, and run it in high memory.
+  First it makes the stack pointer, %esp, point to memory to be used as a stack*/
   movl $(stack + KSTACKSIZE), %esp
 
   # Jump to main(), and switch to executing at

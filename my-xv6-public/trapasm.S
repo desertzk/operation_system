@@ -19,7 +19,18 @@ alltraps:
   pushl %esp
   call trap
   addl $4, %esp
-
+/*
+trapret restores user registers from values stored at the top of the kernel stack and jumps into the process
+This setup is the same for ordinary fork and for creating the first process, though in
+the latter case the process will start executing at user-space location zero rather than at
+a return from fork
+CS: Code
+DS: Data
+SS: Stack
+ES: Extra data
+FS: Extra data #2
+GS: Extra data #3
+*/
   # Return falls through to trapret...
 .globl trapret
 trapret:

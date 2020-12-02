@@ -153,6 +153,8 @@ switchkvm(void)
 }
 
 // Switch TSS and h/w page table to correspond to process p.
+//switchuvm to tell the
+//hardware to start using the target process’s page table
 void
 switchuvm(struct proc *p)
 {
@@ -172,13 +174,16 @@ switchuvm(struct proc *p)
   // setting IOPL=0 in eflags *and* iomb beyond the tss segment limit
   // forbids I/O instructions (e.g., inb and outb) from user space
   mycpu()->ts.iomb = (ushort) 0xFFFF;
-  ltr(SEG_TSS << 3);
-  lcr3(V2P(p->pgdir));  // switch to process's address space
+  //sets up a task state segment SEG_TSS that instructs the hardware to execute system calls and interrupts
+  //on the process’s kernel stack. 
+  ltr(SEG_TSS << 3);//Load Task Register
+  lcr3(V2P(p->pgdir));  // switch to process's address space 
   popcli();
 }
 
 // Load the initcode into address 0 of pgdir.
 // sz must be less than a page.
+//Userinit copies that binary into the new process’s memory by calling inituvm
 void
 inituvm(pde_t *pgdir, char *init, uint sz)
 {

@@ -33,13 +33,26 @@ struct context {
 };
 
 enum procstate { UNUSED, EMBRYO, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
-
+/*
+Each process has two stacks: a user
+stack and a kernel stack (p->kstack). When the process is executing user instructions,
+only its user stack is in use, and its kernel stack is empty. When the process enters the
+kernel (for a system call or interrupt), the kernel code executes on the process’s kernel
+stack; while a process is in the kernel, its user stack still contains saved data, but isn’t
+actively used. A process’s thread alternates between actively using its user stack and its
+kernel stack. The kernel stack is separate (and protected from user code) so that the
+kernel can execute even if a process has wrecked its user stack.
+When a process makes a system call, the processor switch
+*/
 // Per-process state
 struct proc {
   uint sz;                     // Size of process memory (bytes)
-  pde_t* pgdir;                // Page table
+/*pgdir holds the process’s page table, in the format that the x86 hardware expects. xv6 causes the paging hardware to use a process’s p->pgdir when executing
+that process. A process’s page table also serves as the record of the addresses of the
+physical pages allocated to store the process’s memory.*/
+  pde_t* pgdir;                // Page table 
   char *kstack;                // Bottom of kernel stack for this process
-  enum procstate state;        // Process state
+  enum procstate state;        // Process state indicates whether the process is allocated, ready to run, running, waiting for I/O, or exiting.
   int pid;                     // Process ID
   struct proc *parent;         // Parent process
   struct trapframe *tf;        // Trap frame for current syscall
