@@ -29,6 +29,9 @@ seginit(void)
   lgdt(c->gdt, sizeof(c->gdt));
 }
 
+
+//walkpgdir (1735) mimics the actions of the x86 paging hardware as it looks up
+//the PTE for a virtual address
 // Return the address of the PTE in page table pgdir
 // that corresponds to virtual address va.  If alloc!=0,
 // create any required page table pages.
@@ -38,22 +41,24 @@ walkpgdir(pde_t *pgdir, const void *va, int alloc)
   pde_t *pde;
   pte_t *pgtab;
 
-  pde = &pgdir[PDX(va)];
-  if(*pde & PTE_P){
+  pde = &pgdir[PDX(va)]; //is the address of the relevant PDE now *pde is the PDE
+  if(*pde & PTE_P){ // the relevant page-table page already exists
     pgtab = (pte_t*)P2V(PTE_ADDR(*pde));
   } else {
-    if(!alloc || (pgtab = (pte_t*)kalloc()) == 0)
+    if(!alloc || (pgtab = (pte_t*)kalloc()) == 0) //alloc a page-table page 
       return 0;
     // Make sure all those PTE_P bits are zero.
     memset(pgtab, 0, PGSIZE);
     // The permissions here are overly generous, but they can
     // be further restricted by the permissions in the page table
     // entries, if necessary.
-    *pde = V2P(pgtab) | PTE_P | PTE_W | PTE_U;
+    *pde = V2P(pgtab) | PTE_P | PTE_W | PTE_U;    
   }
   return &pgtab[PTX(va)];
 }
 
+// mappages (1760) installs mappings into a page table for a range of 
+//virtual addresses to a corresponding range of physical addresses.
 // Create PTEs for virtual addresses starting at va that refer to
 // physical addresses starting at pa. va and size might not
 // be page-aligned.
@@ -113,15 +118,15 @@ static struct kmap {
  { (void*)data,     V2P(data),     PHYSTOP,   PTE_W}, // kern data+memory
  { (void*)DEVSPACE, DEVSPACE,      0,         PTE_W}, // more devices
 };
-
-// Set up kernel part of a page table.
+//上面数组中的是默认已经映射好的
+// Set up kernel part of a page table. setupkvm does not install any mappings for the user memory; this will happen later.
 pde_t*
 setupkvm(void)
 {
   pde_t *pgdir;
   struct kmap *k;
 
-  if((pgdir = (pde_t*)kalloc()) == 0)
+  if((pgdir = (pde_t*)kalloc()) == 0)//It first allocates a page of memory to hold the page directory.
     return 0;
   memset(pgdir, 0, PGSIZE);
   if (P2V(PHYSTOP) > (void*)DEVSPACE)
@@ -137,6 +142,7 @@ setupkvm(void)
 
 // Allocate one page table for the machine for the kernel address
 // space for scheduler processes.
+//main create and switch to a page table with the mappings above KERNBASE required for the kernel to run
 void
 kvmalloc(void)
 {

@@ -32,6 +32,12 @@ idtinit(void)
   lidt(idt, sizeof(idt));
 }
 
+/*
+CPU saves registers, forces transfer to kernel
+  kernel can just produce error, kill process
+  or kernel can install a PTE, resume the process
+    e.g. after loading the page of memory from disk
+    */
 //PAGEBREAK: 41
 void
 trap(struct trapframe *tf)

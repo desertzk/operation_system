@@ -13,6 +13,7 @@ void freerange(void *vstart, void *vend);
 extern char end[]; // first address after kernel loaded from ELF file
                    // defined by the kernel linker script in kernel.ld
 
+// Each free page’s list element is a struct run
 struct run {
   struct run *next;
 };
@@ -23,6 +24,13 @@ struct {
   struct run *freelist;
 } kmem;
 
+
+/*
+The function main calls kinit1 and kinit2 to initialize the allocator. The
+reason for having two calls is that for much of main one cannot use locks or memory
+above 4 megabytes. The call to kinit1 sets up for lock-less allocation in the first 4
+megabytes, and the call to kinit2 enables locking and arranges for more memory to be allocatable.
+*/
 // Initialization happens in two phases.
 // 1. main() calls kinit1() while still using entrypgdir to place just
 // the pages mapped by entrypgdir on free list.
@@ -70,7 +78,7 @@ kfree(char *v)
   if(kmem.use_lock)
     acquire(&kmem.lock);
   r = (struct run*)v;
-  r->next = kmem.freelist;
+  r->next = kmem.freelist; //在头部插入
   kmem.freelist = r;
   if(kmem.use_lock)
     release(&kmem.lock);
@@ -88,7 +96,7 @@ kalloc(void)
     acquire(&kmem.lock);
   r = kmem.freelist;
   if(r)
-    kmem.freelist = r->next;
+    kmem.freelist = r->next;//申请的时候freelist - 1 这里几步相当于去头 最头部那个节点出来
   if(kmem.use_lock)
     release(&kmem.lock);
   return (char*)r;

@@ -92,10 +92,10 @@ sys_uptime(void)
 
 
 int 
-sys_date(struct rtcdate* r)
+sys_date(void)
 {
-  
-  if(argptr(0,(void *)&r,sizeof(*r)))
+  struct rtcdate* r;
+  if(argptr(0,(void *)&r,sizeof(*r)))   //从参数中获取赋值给零时变量
     return -1;
 
   cmostime(r);    //从cmos中获取时间

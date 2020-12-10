@@ -12505,16 +12505,16 @@ sys_uptime(void)
 
 
 int 
-sys_date(struct rtcdate* r)
+sys_date(void)
 {
 8010656b:	55                   	push   %ebp
 8010656c:	89 e5                	mov    %esp,%ebp
-8010656e:	83 ec 08             	sub    $0x8,%esp
-  
+8010656e:	83 ec 18             	sub    $0x18,%esp
+  struct rtcdate* r;
   if(argptr(0,(void *)&r,sizeof(*r)))
 80106571:	83 ec 04             	sub    $0x4,%esp
 80106574:	6a 18                	push   $0x18
-80106576:	8d 45 08             	lea    0x8(%ebp),%eax
+80106576:	8d 45 f4             	lea    -0xc(%ebp),%eax
 80106579:	50                   	push   %eax
 8010657a:	6a 00                	push   $0x0
 8010657c:	e8 ce ef ff ff       	call   8010554f <argptr>
@@ -12526,7 +12526,7 @@ sys_date(struct rtcdate* r)
 8010658d:	eb 14                	jmp    801065a3 <sys_date+0x38>
 
   cmostime(r);    //从cmos中获取时间
-8010658f:	8b 45 08             	mov    0x8(%ebp),%eax
+8010658f:	8b 45 f4             	mov    -0xc(%ebp),%eax
 80106592:	83 ec 0c             	sub    $0xc,%esp
 80106595:	50                   	push   %eax
 80106596:	e8 03 cc ff ff       	call   8010319e <cmostime>

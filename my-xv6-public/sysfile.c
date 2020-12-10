@@ -66,19 +66,29 @@ sys_dup(void)
   return fd;
 }
 
-// int
-// sys_dup2(void)
-// {
-//   struct file *f1,*f2;
-//   int fd;
+int
+sys_dup2(void)
+{
+  int old_fd,new_fd;
+  struct file *f1,*f2;
 
-//   if(argfd(0, 0, &f) < 0)
-//     return -1;
-//   if((fd=fdalloc(f)) < 0)
-//     return -1;
-//   filedup(f);
-//   return fd;
-// }
+  if(argfd(0,&old_fd,f1)<0 || argint(1,&new_fd)<0)
+    return -1;
+  if(new_fd < 0 || new_fd>=NOFILE)
+    return -1;
+  if(new_fd!=old_fd){
+    f2 = myproc()->ofile[new_fd];
+    if(f2){
+      // 检查该文件描述符是否在使用中
+      fileclose(f2);
+    }
+    myproc()->ofile[new_fd]=f1;
+    filedup(f1);
+  }
+
+
+  return new_fd;
+}
 
 
 
