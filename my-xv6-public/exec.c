@@ -34,7 +34,7 @@ exec(char *path, char **argv)
     goto bad;
   if(elf.magic != ELF_MAGIC)
     goto bad;
-
+  //初始化内核内存 也即是KERNBASE到4G
   if((pgdir = setupkvm()) == 0)
     goto bad;
 
@@ -49,10 +49,12 @@ exec(char *path, char **argv)
       goto bad;
     if(ph.vaddr + ph.memsz < ph.vaddr)
       goto bad;
+    // allocates memory for each ELF segment
     if((sz = allocuvm(pgdir, sz, ph.vaddr + ph.memsz)) == 0)
       goto bad;
     if(ph.vaddr % PGSIZE != 0)
       goto bad;
+    //loads each segment into memory
     if(loaduvm(pgdir, (char*)ph.vaddr, ip, ph.off, ph.filesz) < 0)
       goto bad;
   }
@@ -63,11 +65,17 @@ exec(char *path, char **argv)
   // Allocate two pages at the next page boundary.
   // Make the first inaccessible.  Use the second as the user stack.
   sz = PGROUNDUP(sz);
+  
   if((sz = allocuvm(pgdir, sz, sz + 2*PGSIZE)) == 0)
     goto bad;
   clearpteu(pgdir, (char*)(sz - 2*PGSIZE));
   sp = sz;
-
+  /*
+exec allocates and initializes the user stack. It allocates just one stack page.
+Exec copies the argument strings to the top of the stack one at a time, recording the
+pointers to them in ustack. It places a null pointer at the end of what will be the
+argv list passed to main.这些参数最后要交给新进程的main函数
+  */
   // Push argument strings, prepare rest of stack in ustack.
   for(argc = 0; argv[argc]; argc++) {
     if(argc >= MAXARG)
