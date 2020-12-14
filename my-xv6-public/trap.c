@@ -37,6 +37,7 @@ CPU saves registers, forces transfer to kernel
   kernel can just produce error, kill process
   or kernel can install a PTE, resume the process
     e.g. after loading the page of memory from disk
+    每一次用戶態陷入內核態會調用
     */
 //PAGEBREAK: 41
 void
@@ -59,6 +60,16 @@ trap(struct trapframe *tf)
       ticks++;
       wakeup(&ticks);
       release(&tickslock);
+    }
+    if(myproc() && (tf->cs & 3)==3){
+      myproc()->curalarmticks++;
+      if(myproc()->alarmticks == myproc()->curalarmticks){
+        myproc()->curalarmticks = 0;
+        //下面两句将eip压栈
+        tf->esp-=4;
+        *((uint *)(tf->esp)) = tf->eip;
+        tf->eip = (uint)myproc()->alarmhander;
+      }
     }
     lapiceoi();
     break;
@@ -83,6 +94,21 @@ trap(struct trapframe *tf)
             cpuid(), tf->cs, tf->eip);
     lapiceoi();
     break;
+  case T_PGFLT:
+    // kallo或mappages执行失败，则继续执行下面的default.
+    // In user space, assume process misbehaved.
+    // cr2包含发生页面错误时的线性地址.
+    char *mem = kalloc();
+    if(mem!=0)
+    {
+        uint va=PGROUNDDOWN(rcr2());
+        memset(mem, 0, PGSIZE);
+        extern int mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm);
+        if(mappages(myproc()->pgdir,(void *)va,PGSIZE,V2P(mem),PTE_W|PTE_U)>=0)
+        {
+          break;
+        }
+    }
 
   //PAGEBREAK: 13
   default:

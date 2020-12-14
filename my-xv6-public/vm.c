@@ -12,6 +12,11 @@ pde_t *kpgdir;  // for use in scheduler()
 
 // Set up CPU's kernel segment descriptors.
 // Run once on entry on each CPU.
+/*
+Implementations of per-CPU (or per-thread) storage on non-segment architectures would dedicate
+a register to holding a pointer to the per-CPU data area, but the x86 has so few general registers 
+that the extra effort required to use segmentation is worthwhile.
+*/
 void
 seginit(void)
 {
@@ -62,7 +67,7 @@ walkpgdir(pde_t *pgdir, const void *va, int alloc)
 // Create PTEs for virtual addresses starting at va that refer to
 // physical addresses starting at pa. va and size might not
 // be page-aligned.
-static int
+int
 mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm)
 {
   char *a, *last;

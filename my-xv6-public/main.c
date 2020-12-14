@@ -99,6 +99,10 @@ startothers(void)
 // hence the __aligned__ attribute.
 // PTE_PS in a page directory entry enables 4Mbyte pages.
 //The entry page table
+/*
+xv6在一个地方使用超级页面：初始页面表。 数组初始化设置了1024个PDE中的两个，索引为零和512(KERN BASE>>PDXSHIFT)，其余PDE为零。 Xv6se 将这两个PDE中的PTE_PS位标记为超级页面。 
+内核还告诉分页硬件通过在%cr4中设置CR_PSE位(Page Size Extension)来允许超级页面。
+*/
 __attribute__((__aligned__(PGSIZE)))
 pde_t entrypgdir[NPDENTRIES] = {
   // Map VA's [0, 4MB) to PA's [0, 4MB)

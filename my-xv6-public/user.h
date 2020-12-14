@@ -1,6 +1,7 @@
 struct stat;
 struct rtcdate;
 
+//给用户态调用的系统调用申明
 // system calls
 int fork(void);
 int exit(void) __attribute__((noreturn));
@@ -24,6 +25,7 @@ char* sbrk(int);
 int sleep(int);
 int uptime(void);
 int date(struct rtcdate* r);
+int alarm(int ticks, void(*hander)());
 
 // ulib.c
 int stat(const char*, struct stat*);
