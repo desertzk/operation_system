@@ -65,7 +65,7 @@ physical pages allocated to store the process’s memory.*/
 
   int alarmticks;         
   int curalarmticks;
-  void (*alarmhander)();      
+  void (*alarmhandler)();      
 };
 
 // Process memory is laid out contiguously, low addresses first:

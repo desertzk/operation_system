@@ -52,6 +52,8 @@ trap(struct trapframe *tf)
       exit();
     return;
   }
+  char *mem=0;
+
 
   switch(tf->trapno){
   case T_IRQ0 + IRQ_TIMER:
@@ -68,7 +70,7 @@ trap(struct trapframe *tf)
         //下面两句将eip压栈
         tf->esp-=4;
         *((uint *)(tf->esp)) = tf->eip;
-        tf->eip = (uint)myproc()->alarmhander;
+        tf->eip = (uint)myproc()->alarmhandler;
       }
     }
     lapiceoi();
@@ -98,7 +100,7 @@ trap(struct trapframe *tf)
     // kallo或mappages执行失败，则继续执行下面的default.
     // In user space, assume process misbehaved.
     // cr2包含发生页面错误时的线性地址.
-    char *mem = kalloc();
+    mem = kalloc();
     if(mem!=0)
     {
         uint va=PGROUNDDOWN(rcr2());

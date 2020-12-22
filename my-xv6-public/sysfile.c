@@ -72,7 +72,7 @@ sys_dup2(void)
   int old_fd,new_fd;
   struct file *f1,*f2;
 
-  if(argfd(0,&old_fd,f1)<0 || argint(1,&new_fd)<0)
+  if(argfd(0,&old_fd,&f1)<0 || argint(1,&new_fd)<0)
     return -1;
   if(new_fd < 0 || new_fd>=NOFILE)
     return -1;
