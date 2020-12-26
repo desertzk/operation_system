@@ -62,11 +62,11 @@ walkpgdir(pde_t *pgdir, const void *va, int alloc)
   return &pgtab[PTX(va)];
 }
 
-// mappages (1760) installs mappings into a page table for a range of 
+// mappages installs mappings into a page table for a range of 
 //virtual addresses to a corresponding range of physical addresses.
 // Create PTEs for virtual addresses starting at va that refer to
 // physical addresses starting at pa. va and size might not
-// be page-aligned.
+// be page-aligned. 建立虛擬內存和物理內存的映射關係
 int
 mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm)
 {
@@ -245,9 +245,9 @@ allocuvm(pde_t *pgdir, uint oldsz, uint newsz)
   if(newsz < oldsz)
     return oldsz;
 
-  a = PGROUNDUP(oldsz);
+  a = PGROUNDUP(oldsz);//a是虛擬地址
   for(; a < newsz; a += PGSIZE){
-    mem = kalloc();
+    mem = kalloc();//mem是物理地址
     if(mem == 0){
       cprintf("allocuvm out of memory\n");
       deallocuvm(pgdir, newsz, oldsz);

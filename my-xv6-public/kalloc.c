@@ -72,7 +72,7 @@ kfree(char *v)
   if((uint)v % PGSIZE || v < end || V2P(v) >= PHYSTOP)
     panic("kfree");
 
-  // Fill with junk to catch dangling refs.
+  // Fill with junk to catch dangling refs. 这样把他变成垃圾值更好，省的访问到应用层已经free掉的内存还能继续跑下去
   memset(v, 1, PGSIZE);
 
   if(kmem.use_lock)

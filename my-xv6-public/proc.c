@@ -200,6 +200,12 @@ growproc(int n)
   struct proc *curproc = myproc();
 
   sz = curproc->sz;
+  /*
+If n is postive, growproc allocates one
+or more physical pages and maps them at the top of the process’s address space. If n is negative,
+growproc unmaps one or more pages from the process’s address space and
+frees the corresponding physical pages.
+  */
   if(n > 0){
     if((sz = allocuvm(curproc->pgdir, sz, sz + n)) == 0)
       return -1;
