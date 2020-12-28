@@ -55,6 +55,7 @@ struct PushRegs {
 	uint32_t reg_eax;
 } __attribute__((packed));
 
+//Trapframe结构体存储的是当前进程的寄存器的值
 struct Trapframe {
 	struct PushRegs tf_regs;
 	uint16_t tf_es;
