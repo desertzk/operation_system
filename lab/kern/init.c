@@ -11,7 +11,7 @@
 #include <kern/env.h>
 #include <kern/trap.h>
 
-
+void
 test_backtrace(int x)
 {
 	cprintf("entering test_backtrace %d\n", x);
