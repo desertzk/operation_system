@@ -58,25 +58,25 @@ static const char *trapname(int trapno)
 	return "(unknown trap)";
 }
 
-void divide_handler();
-void debug_handler();
-void nmi_handler();
-void brkpt_handler();
-void oflow_handler();
-void bound_handler();
-void device_handler();
-void illop_handler();
-void tss_handler();
-void segnp_handler();
-void stack_handler();
-void gpflt_handler();
-void pgflt_handler();
-void fperr_handler();
-void align_handler();
-void mchk_handler();
-void simderr_handler();
-void syscall_handler();
-void dblflt_handler();
+void divide_entry();
+void debug_entry();
+void nmi_entry();
+void brkpt_entry();
+void oflow_entry();
+void bound_entry();
+void device_entry();
+void illop_entry();
+void tss_entry();
+void segnp_entry();
+void stack_entry();
+void gpflt_entry();
+void pgflt_entry();
+void fperr_entry();
+void align_entry();
+void mchk_entry();
+void simderr_entry();
+void syscall_entry();
+void dblflt_entry();
 
 void
 trap_init(void)
