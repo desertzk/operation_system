@@ -295,6 +295,7 @@ struct Gatedesc {
 // - dpl: Descriptor Privilege Level -
 //	  the privilege level required for software to invoke
 //	  this interrupt/trap gate explicitly using an int instruction.
+//其中gate是idt表的index入口，istrap判断是异常还是中断，sel为代码段选择符，off表示对应的处理函数地址，dpl表示触发该异常或中断的用户权限。
 #define SETGATE(gate, istrap, sel, off, dpl)			\
 {								\
 	(gate).gd_off_15_0 = (uint32_t) (off) & 0xffff;		\
