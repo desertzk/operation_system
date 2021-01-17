@@ -26,6 +26,7 @@
 
 // These are arbitrarily chosen, but with care not to overlap
 // processor defined exceptions or interrupt vectors.
+// we will use int $0x30 as the system call interrupt
 #define T_SYSCALL   48		// system call
 #define T_DEFAULT   500		// catchall
 

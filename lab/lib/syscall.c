@@ -19,7 +19,12 @@ syscall(int num, int check, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 	// The last clause tells the assembler that this can
 	// potentially change the condition codes and arbitrary
 	// memory locations.
-
+/*
+"__volatile__"表示编译器不要优化代码，后面的指令 保留原样，其中"=a"表示"ret"是输出操作数; "i"=立即数;
+最后一个子句告诉汇编器这可能会改变条件代码和任意内存位置。memory强制gcc编译器假设所有内存单元均被汇编指令修改，
+这样cpu中的registers和cache中已缓存的内存单元中的数据将作废。cpu将不得不在需要的时候重新读取内存中的数据。
+这就阻止了cpu又将registers，cache中的数据用于去优化指令，而避免去访问内存。
+*/
 	asm volatile("int %1\n"
 		     : "=a" (ret)
 		     : "i" (T_SYSCALL),
