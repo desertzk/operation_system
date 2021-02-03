@@ -1,6 +1,6 @@
 #include <inc/mmu.h>
 #include <inc/memlayout.h>
-
+//这是用户程序启动的地方
 .data
 // Define the global symbols 'envs', 'pages', 'uvpt', and 'uvpd'
 // so that they can be used in C as if they were ordinary global arrays.

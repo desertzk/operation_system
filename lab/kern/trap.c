@@ -189,6 +189,16 @@ trap_dispatch(struct Trapframe *tf)
 		case(T_BRKPT)://for breakpoint
 			monitor(tf);
 			break;
+		case(T_SYSCALL):
+			print_trapframe(tf);
+			ret_code = syscall(tf->tf_regs.reg_eax,
+					tf->tf_regs.reg_ebx,
+					tf->tf_regs.reg_ecx,
+					tf->tf_regs.reg_edx,
+					tf->tf_regs.reg_edi,
+					tf->tf_regs.reg_esi);
+			tf->tf_regs.reg_eax = ret_code;
+			break;
 		default:
 			// Unexpected trap: The user process or the kernel has a bug.
 			print_trapframe(tf);
