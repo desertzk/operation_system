@@ -29,6 +29,12 @@ acquire(struct spinlock *lk)
     panic("acquire");
 
   // The xchg is atomic.
+  /*
+  The function acquire  repeats this xchg instruction in a loop; each iteration atomically reads lk->locked and sets it to 1 (1581). If the lock is already held,
+lk->locked will already be 1, so the xchg returns 1 and the loop continues. If the
+xchg returns 0, however, acquire has successfully acquired the lock—locked was 0
+and is now 1—so the loop can stop.
+  */
   while(xchg(&lk->locked, 1) != 0)
     ;
 
@@ -100,16 +106,19 @@ holding(struct spinlock *lock)
 // Pushcli/popcli are like cli/sti except that they are matched:
 // it takes two popcli to undo two pushcli.  Also, if interrupts
 // are off, then pushcli, popcli leaves them off.
-
+/*to track the nesting level of locks on the current processor.
+When that count reaches zero, popcli restores the interrupt enable state that existed at
+the start of the outermost critical section. The cli and sti functions execute the x86
+interrupt disable and enable instructions, respectively.*/
 void
 pushcli(void)
 {
   int eflags;
 
   eflags = readeflags();
-  cli();
+  cli();//interrupt disable
   if(mycpu()->ncli == 0)
-    mycpu()->intena = eflags & FL_IF;
+    mycpu()->intena = eflags & FL_IF; //这个估计就是阻止中断
   mycpu()->ncli += 1;
 }
 
@@ -121,6 +130,6 @@ popcli(void)
   if(--mycpu()->ncli < 0)
     panic("popcli");
   if(mycpu()->ncli == 0 && mycpu()->intena)
-    sti();
+    sti();//enable interrupt
 }
 
