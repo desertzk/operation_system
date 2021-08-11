@@ -82,6 +82,7 @@ struct Env {
 	*/
 	unsigned env_status;		// Status of the environment
 	uint32_t env_runs;		// Number of times environment has run
+	int env_cpunum;			// The CPU that the env is running on
 
 	// Address space
 	/*This variable holds the kernel virtual address of this environment's page directory.
@@ -90,6 +91,16 @@ To run an environment, the kernel must set up the CPU with both the saved regist
 Our struct Env is analogous to struct proc in xv6. Both structures hold the environment's (i.e., process's) user-mode register state in a Trapframe structure. In JOS, individual environments do not have their own kernel stacks as processes do in xv6.
  There can be only one JOS environment active in the kernel at a time, so JOS needs only a single kernel stack.*/
 	pde_t *env_pgdir;		// Kernel virtual address of page dir
+
+	// Exception handling
+	void *env_pgfault_upcall;	// Page fault upcall entry point
+
+	// Lab 4 IPC
+	bool env_ipc_recving;		// Env is blocked receiving
+	void *env_ipc_dstva;		// VA at which to map received page
+	uint32_t env_ipc_value;		// Data value sent to us
+	envid_t env_ipc_from;		// envid of the sender
+	int env_ipc_perm;		// Perm of page mapping received
 };
 
 #endif // !JOS_INC_ENV_H
