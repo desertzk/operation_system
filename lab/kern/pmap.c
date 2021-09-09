@@ -156,7 +156,8 @@ mem_init(void)
 	// Permissions: kernel R, user R
 	//这指令就是在为页目录表添加第一个页目录表项。通过查看memlayout.h文件，我们可以看到，
 	//UVPT的定义是一段虚拟地址的起始地址，0xef400000，从这个虚拟地址开始，存放的就是这个
-	//操作系统的页表kern_pgdir，所以我们必须把它和页表kern_pgdir的物理地址映射起来，PADDR(kern_pgdir)就是在计算kern_pgdir所对应的真实物理地址。
+	//操作系统的页表kern_pgdir，所以我们必须把它和页表kern_pgdir的物理地址映射起来，
+	//PADDR(kern_pgdir)就是在计算kern_pgdir所对应的真实物理地址。
 	kern_pgdir[PDX(UVPT)] = PADDR(kern_pgdir) | PTE_U | PTE_P;
 
 	//////////////////////////////////////////////////////////////////////
@@ -174,7 +175,8 @@ mem_init(void)
 	//////////////////////////////////////////////////////////////////////
 	// Make 'envs' point to an array of size 'NENV' of 'struct Env'.
 	// LAB 3: Your code here.
-
+	envs = (struct Env*)boot_alloc(sizeof(struct Env) * NENV);
+	memset(envs, 0, sizeof(struct Env) * NENV);
 
 	//////////////////////////////////////////////////////////////////////
 	// Now that we've allocated the initial kernel data structures, we set
@@ -207,8 +209,6 @@ mem_init(void)
 	//    - the new image at UENVS  -- kernel R, user R
 	//    - envs itself -- kernel RW, user NONE
 	// LAB 3: Your code here.
-	envs = (struct Env*)boot_alloc(NENV*sizeof(struct Env));
-	memset(envs,0,NENV*sizeof(struct Env));
 	//然后要在页表中设置它的映射关系
 	boot_map_region(kern_pgdir, UENVS, PTSIZE, PADDR(envs), PTE_U);
 
@@ -237,6 +237,9 @@ mem_init(void)
 	// Your code goes here:
 	boot_map_region(kern_pgdir, KERNBASE, 0xffffffff - KERNBASE, 0, PTE_W);
 
+
+	// Initialize the SMP-related parts of the memory map
+	mem_init_mp();
 	// Check that the initial page directory has been set up correctly.
 	check_kern_pgdir();
 
@@ -284,6 +287,21 @@ mem_init_mp(void)
 	//     Permissions: kernel RW, user NONE
 	//
 	// LAB 4: Your code here:
+	int i;
+	uintptr_t kstacktop_i;
+	//映射每个核要用的栈
+	for(i=0;i<NCPU;i++)
+	{
+		kstacktop_i = KSTACKTOP - i*(KSTKGAP + KSTKSIZE);
+		boot_map_region(kern_pgdir,
+		kstacktop_i-KSTKSIZE,
+		KSTKSIZE,
+		PADDR(&percpu_kstacks[i]),
+		PTE_W|PTE_P
+		);
+	}
+
+
 
 }
 
@@ -302,9 +320,7 @@ mem_init_mp(void)
 void
 page_init(void)
 {
-	// LAB 4:
-	// Change your code to mark the physical page at MPENTRY_PADDR
-	// as in use
+
 
 	// The example code here marks all physical pages as free.
 	// However this is not truly the case.  What memory is free?
@@ -343,12 +359,19 @@ npages数组中的PageInfo结构体，并且根据这个页当前的状态来修
 	//num_iohole：在io hole区域占用的页数
 	int num_iohole = (EXTPHYSMEM - IOPHYSMEM)/PGSIZE;
 
+	
+
 	for (i = 0; i < npages; i++) {
 		if(i==0)
 		{
         	pages[i].pp_ref = 1;
         	pages[i].pp_link = NULL;
         	continue;
+		}else if(i==MPENTRY_PADDR/PGSIZE){
+			// LAB 4:
+			// Change your code to mark the physical page at MPENTRY_PADDR
+			// as in use
+			continue;
 		}else if(i>=npages_basemem && i<npages_basemem+num_iohole+num_extmem_alloc){
         	pages[i].pp_ref = 1;
         	pages[i].pp_link = NULL;
@@ -711,11 +734,15 @@ void *
 mmio_map_region(physaddr_t pa, size_t size)
 {
 	// Where to start the next region.  Initially, this is the
-	// beginning of the MMIO region.  Because this is static, its
+	// beginning of the MMIO(memory-mapped I/O) region.  Because this is static, its
 	// value will be preserved between calls to mmio_map_region
 	// (just like nextfree in boot_alloc).
 	static uintptr_t base = MMIOBASE;
-
+	void *ret = (void *)base;
+	size = ROUNDUP(size,PGSIZE);
+	if (base + size > MMIOLIM || base + size < base) {
+        panic("mmio_map_region reservation overflow\n");
+    }
 	// Reserve size bytes of virtual memory starting at base and
 	// map physical pages [pa,pa+size) to virtual addresses
 	// [base,base+size).  Since this is device memory and not
@@ -734,7 +761,10 @@ mmio_map_region(physaddr_t pa, size_t size)
 	// Hint: The staff solution uses boot_map_region.
 	//
 	// Your code here:
-	panic("mmio_map_region not implemented");
+	boot_map_region(kern_pgdir,base,size,pa,PTE_W|PTE_PCD|PTE_PWT);
+	base += size;
+	//panic("mmio_map_region not implemented");
+	return ret;
 }
 
 static uintptr_t user_mem_check_addr;

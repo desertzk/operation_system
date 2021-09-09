@@ -53,6 +53,11 @@ i386_init(void)
 	trap_init();
 
 	// Lab 4 multiprocessor initialization functions
+	/*
+	mp_init和lapic_init是和硬件以及体系架构紧密相关的，通过读取某个特殊内存地址
+	（当然前提是能读取的到，所以在mem_init中需要修改进行相应映射），来获取CPU的信息，
+	根据这些信息初始化CPU结构。 
+	*/
 	mp_init();
 	lapic_init();
 
@@ -92,6 +97,12 @@ boot_aps(void)
 
 	// Write entry code to unused memory at MPENTRY_PADDR
 	code = KADDR(MPENTRY_PADDR);
+	
+	/* memmove将每个CPU的boot代码加载到固定位置
+	其中mpentry_start和mpentry_end是编译器导出符号，
+	代表这段代码在内存（虚拟地址）中的起止位置，接着把代码复制到MPENTRY_PADDR处。
+	随后调用lapic_startap来命令特定的AP去执行这段代码。
+	*/
 	memmove(code, mpentry_start, mpentry_end - mpentry_start);
 
 	// Boot each AP one at a time
@@ -101,7 +112,7 @@ boot_aps(void)
 
 		// Tell mpentry.S what stack to use 
 		mpentry_kstack = percpu_kstacks[c - cpus] + KSTKSIZE;
-		// Start the CPU at mpentry_start
+		// Start the CPU at mpentry_start 最后调用lapic_startap执行其bootloader启动对应的CPU
 		lapic_startap(c->cpu_id, PADDR(code));
 		// Wait for the CPU to finish some basic setup in mp_main()
 		while(c->cpu_status != CPU_STARTED)

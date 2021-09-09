@@ -26,6 +26,8 @@
 #    - it does not need to enable A20
 #    - it uses MPBOOTPHYS to calculate absolute addresses of its
 #      symbols, rather than relying on the linker to fill them
+# 主要就是开启分页，转到内核栈上去，当然这个时候实际上内核栈还没建好。
+# 在执行完mpentry.S中的代码之后，将会跳转到mp_main函数中去
 
 #define RELOC(x) ((x) - KERNBASE)
 #define MPBOOTPHYS(s) ((s) - mpentry_start + MPENTRY_PADDR)
