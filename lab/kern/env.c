@@ -569,7 +569,9 @@ env_run(struct Env *e)
 	curenv->env_runs++;
 
 	lcr3(PADDR(curenv->env_pgdir));//页表换到用户进程
-
+	//lab 4 release the lock right before switching to user mode. 
+	//Do not do that too early or too late, otherwise you will experience races or deadlocks.
+	unlock_kernel();
 	env_pop_tf(&curenv->env_tf);//to restore the environment's
 	//	   registers and drop into user mode in the environment.
 

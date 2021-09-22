@@ -67,6 +67,11 @@ struct Trapframe {
 	/* below here defined by x86 hardware */
 	uint32_t tf_err;
 	uintptr_t tf_eip;
+	/*
+Code segment (CS) is a 16-bit register containing address of 64 KB segment with processor instructions. 
+The processor uses CS segment for all accesses to instructions referenced by instruction pointer (IP) register. 
+CS register cannot be changed directly. The CS register is automatically updated during far jump, far call and far return instructions.
+	*/
 	uint16_t tf_cs;
 	uint16_t tf_padding3;
 	uint32_t tf_eflags;
