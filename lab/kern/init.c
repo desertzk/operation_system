@@ -75,7 +75,22 @@ i386_init(void)
 	ENV_CREATE(TEST, ENV_TYPE_USER);
 #else
 	// Touch all you want.
-	ENV_CREATE(user_primes, ENV_TYPE_USER);
+
+
+	//ENV_CREATE(user_primes, ENV_TYPE_USER);
+	/*
+	do {								
+		extern uint8_t ENV_PASTE3(_binary_obj_, user_yield, _start)[];	
+		env_create(_binary_obj_user_yield_start,		
+			   ENV_TYPE_USER);					
+	} while (0)
+	这里其实就是指去执行user目录下的yield这个应用程序*/
+	
+	ENV_CREATE(user_yield, ENV_TYPE_USER);
+	ENV_CREATE(user_yield, ENV_TYPE_USER);
+	ENV_CREATE(user_yield, ENV_TYPE_USER);
+	
+
 #endif // TEST*
 
 	// Schedule and run the first user environment!

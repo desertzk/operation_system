@@ -477,12 +477,6 @@ page_decref(struct PageInfo* pp)
 // table and page directory entries.
 //
 /*
-给定一个页目录表指针 pgdir ，该函数应该返回线性地址va所对应的页表项指针。
-1. 通过页目录表求得这个虚拟地址所在的页表页对应的页目录中的页目录项地址 pg_dir_entry。(8) 
-2. 判断这个页目录项对应的页表页是否已经在内存中。 
-3. 如果在，计算这个页表页的基地址page_table，然后返回va所对应页表项的地址 &page_table[PTX(va)] (22-23) 
-4. 如果不在则，且create为true则分配新的页，并且把这个页的信息添加到页目录项pg_dir_entry中。(13-18) 
-5. 如果create为false，则返回NULL。(11-12) 
 
 pte_t *
 pgdir_walk(pde_t *pgdir, const void *va, int create)
@@ -504,7 +498,15 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
 	}
 
 	return (pte_t *)KADDR(PTE_ADDR(*pde_ptr)) + PTX(va);		//这里记得转为pte_t*类型，因为KADDR返回的的是void*类型。调了一个多小时才发现
-}*/
+}
+
+给定一个页目录表指针 pgdir ，该函数应该返回线性地址va所对应的页表项指针。
+1. 通过页目录表求得这个虚拟地址所在的页表页对应的页目录中的页目录项地址 pg_dir_entry。(8) 
+2. 判断这个页目录项对应的页表页是否已经在内存中。 
+3. 如果在，计算这个页表页的基地址page_table，然后返回va所对应页表项的地址 &page_table[PTX(va)] (22-23) 
+4. 如果不在则，且create为true则分配新的页，并且把这个页的信息添加到页目录项pg_dir_entry中。(13-18) 
+5. 如果create为false，则返回NULL。(11-12) 
+*/
 
 pte_t *
 pgdir_walk(pde_t *pgdir, const void *va, int create)
