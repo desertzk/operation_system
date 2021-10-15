@@ -330,11 +330,11 @@ page_fault_handler(struct Trapframe *tf)
 	fault_va = rcr2();
 
 	// Handle kernel-mode page faults.
-    if(tf->tf_cs && 0x01 == 0)
+	// LAB 3: Your code here.
+	if(tf->tf_cs && 0x01 == 0)
     {
         panic("page_fault in kernel mode, fault address %d\n",fault_va);
     }
-	// LAB 3: Your code here.
 
 	// We've already handled kernel-mode exceptions, so if we get here,
 	// the page fault happened in user mode.
@@ -369,11 +369,41 @@ page_fault_handler(struct Trapframe *tf)
 	//   (the 'tf' variable points at 'curenv->env_tf').
 
 	// LAB 4: Your code here.
+	struct UTrapframe *utf;
+	if(curenv->env_pgfault_upcall){
+		
+		if(tf->tf_esp >= UXSTACKTOP-PGSIZE && tf->tf_esp < UXSTACKTOP)
+		{
+			// 异常模式下陷入
+			utf = (struct UTrapframe *)(tf->tf_esp-sizeof(struct UTrapframe)-4);
 
-	// Destroy the environment that caused the fault.
-	cprintf("[%08x] user fault va %08x ip %08x\n",
-		curenv->env_id, fault_va, tf->tf_eip);
-	print_trapframe(tf);
-	env_destroy(curenv);
+		}else{
+			// 非异常模式下陷入
+			utf = (struct UTrapframe *)(UXSTACKTOP - sizeof(struct UTrapframe));
+		}
+		// 检查异常栈是否溢出
+		user_mem_assert(curenv, (const void *) utf, sizeof(struct UTrapframe), PTE_P|PTE_W);
+
+		utf->utf_fault_va = fault_va;
+		utf->utf_err = tf->tf_trapno;
+		utf->utf_regs = tf->tf_regs;
+		utf->utf_eflags = tf->tf_eflags;
+		// 保存陷入时现场，用于返回
+		utf->utf_eip = tf->tf_eip;
+		utf->utf_esp = tf->tf_esp;
+		// 再次转向执行
+		curenv->env_tf.tf_eip = (uint32_t)curenv->env_pgfault_upcall;
+		// 异常栈
+		curenv->env_tf.tf_esp = (uint32_t) utf;
+		env_run(curenv);
+	}else{
+		// Destroy the environment that caused the fault.
+		cprintf("[%08x] user fault va %08x ip %08x\n",
+			curenv->env_id, fault_va, tf->tf_eip);
+		print_trapframe(tf);
+		env_destroy(curenv);
+	}
+
+
 }
 
